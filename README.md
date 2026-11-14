@@ -4,7 +4,7 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestones 1-2: Dataset exploration and preprocessing implementation.** The repository now includes `src/preprocessing.py` and `notebooks/02_preprocessing.ipynb` for adding the silence class, checking split isolation, and extracting MFCC features. Run the new notebook locally after completing notebook 01.
+**Milestones 1-3: Dataset exploration, preprocessing, and classical baseline training.** The repository includes `src/preprocessing.py`, `src/models.py`, and notebooks 01-03. Notebook 03 trains and compares a class-weighted Linear SVM and Random Forest using validation data. The test split remains untouched for final evaluation.
 
 The project uses the Google Speech Commands v0.02 dataset. The dataset contains 105,829 original one-second audio recordings across 35 spoken-word categories and background-noise recordings. The original dataset is distributed under the Creative Commons Attribution 4.0 licence.
 
@@ -62,7 +62,7 @@ requirements.txt
    jupyter notebook
    ```
 
-5. Run `notebooks/01_dataset_exploration.ipynb` first, then `notebooks/02_preprocessing.ipynb`.
+5. Run `notebooks/01_dataset_exploration.ipynb`, then `notebooks/02_preprocessing.ipynb`, and finally `notebooks/03_model_training.ipynb`.
 
 Downloaded audio, generated indexes, and extracted feature arrays are local working data and must not be committed to GitHub.
 
