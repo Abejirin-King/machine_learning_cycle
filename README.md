@@ -4,7 +4,7 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestone 1: Dataset setup and exploration.**
+**Milestones 1-2: Dataset exploration and preprocessing implementation.** The repository now includes `src/preprocessing.py` and `notebooks/02_preprocessing.ipynb` for adding the silence class, checking split isolation, and extracting MFCC features. Run the new notebook locally after completing notebook 01.
 
 The project uses the Google Speech Commands v0.02 dataset. The dataset contains 105,829 original one-second audio recordings across 35 spoken-word categories and background-noise recordings. The original dataset is distributed under the Creative Commons Attribution 4.0 licence.
 
@@ -31,38 +31,40 @@ load_testing/
 requirements.txt
 ```
 
-## Local setup (Windows / PowerShell)
+## Local setup (Windows / Git Bash)
 
 1. Clone the repository:
 
-   ```powershell
+   ```bash
    git clone https://github.com/Abejirin-King/machine_learning_cycle.git
    cd machine_learning_cycle
    ```
 
 2. Create and activate a virtual environment:
 
-   ```powershell
+   ```bash
    py -3.11 -m venv .venv
-   .\.venv\Scripts\Activate.ps1
+   source .venv/Scripts/activate
    ```
 
-3. Install the initial dependencies:
+   If the `py` launcher is unavailable, use `python -m venv .venv`.
 
-   ```powershell
+3. Install the dependencies:
+
+   ```bash
    python -m pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
 4. Start Jupyter:
 
-   ```powershell
+   ```bash
    jupyter notebook
    ```
 
-5. Open `notebooks/01_dataset_exploration.ipynb` and run the cells in order. The download cell retrieves an archive of approximately 2.3 GB, so check available disk space first.
+5. Run `notebooks/01_dataset_exploration.ipynb` first, then `notebooks/02_preprocessing.ipynb`.
 
-The notebook downloads and extracts the dataset under `data/raw/`. Dataset files and generated metadata are excluded from Git.
+Downloaded audio, generated indexes, and extracted feature arrays are local working data and must not be committed to GitHub.
 
 ## Current development environment
 
