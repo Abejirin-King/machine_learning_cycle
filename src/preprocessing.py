@@ -213,17 +213,17 @@ def extract_mfcc_features(
     if max_samples_per_class is not None:
         if max_samples_per_class < 1:
             raise ValueError("max_samples_per_class must be at least 1.")
-        selected = (
-            selected.groupby(["split", "target"], observed=True, group_keys=False)
-            .apply(
-                lambda group: group.sample(
+        sampled_groups = []
+        for _, group in selected.groupby(
+            ["split", "target"], observed=True, sort=True
+        ):
+            sampled_groups.append(
+                group.sample(
                     n=min(len(group), max_samples_per_class),
                     random_state=random_state,
-                ),
-                include_groups=True,
+                )
             )
-            .reset_index(drop=True)
-        )
+        selected = pd.concat(sampled_groups, ignore_index=True)
 
     features: list[np.ndarray] = []
     iterator: Iterable = selected.itertuples(index=False)
