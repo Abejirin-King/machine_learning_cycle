@@ -4,7 +4,7 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestones 1-6: Dataset exploration, preprocessing, model training, held-out test evaluation, and single/batch prediction.** The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, `src/prediction.py`, and notebooks 01-06. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms using all 12 classes, including silence. Notebook 05 evaluates all three trained models on the untouched test split and records the validation-selected model. Notebook 06 demonstrates single-file and batch WAV prediction using that selected model.
+**Milestones 1-7: Dataset exploration, preprocessing, model training, held-out test evaluation, single/batch prediction, a Python API, and controlled retraining.** The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, `src/prediction.py`, `src/retraining.py`, the FastAPI service in `api/main.py`, and notebooks 01-06. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms using all 12 classes, including silence. Notebook 05 evaluates all three trained models on the untouched test split and records the validation-selected model. Notebook 06 demonstrates single-file and batch WAV prediction using that selected model.
 
 The project uses the Google Speech Commands v0.02 dataset. The dataset contains 105,829 original one-second audio recordings across 35 spoken-word categories and background-noise recordings. The original dataset is distributed under the Creative Commons Attribution 4.0 licence.
 
@@ -83,7 +83,7 @@ The local workflow uses Python directly and does not require Docker Desktop. Con
 3. Traditional ML baselines and a CNN model (implemented in notebooks 03-04).
 4. Validation comparison, final held-out test evaluation, error analysis and feature visualisations.
 5. Single-file and bulk audio prediction (implemented in `src/prediction.py` and notebook 06).
-6. Retraining pipeline and Python API.
+6. Python API and validation-gated retraining (implemented in `api/main.py` and `src/retraining.py`). See [API documentation](api/README.md).
 7. Streamlit dashboard, cloud deployment and Locust load testing.
 
 ## Attribution
