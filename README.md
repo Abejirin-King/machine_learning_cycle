@@ -4,7 +4,9 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestones 1-7: Dataset exploration, preprocessing, model training, held-out test evaluation, single/batch prediction, a Python API, and controlled retraining.** The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, `src/prediction.py`, `src/retraining.py`, the FastAPI service in `api/main.py`, and notebooks 01-06. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms using all 12 classes, including silence. Notebook 05 evaluates all three trained models on the untouched test split and records the validation-selected model. Notebook 06 demonstrates single-file and batch WAV prediction using that selected model.
+**Milestones 1-8: dataset exploration, preprocessing, model training, held-out test evaluation, single/batch prediction, FastAPI service, controlled retraining, and Streamlit dashboard.** The dashboard in `app/dashboard.py` provides API health and model status, single and batch WAV prediction, waveform/Mel/MFCC visualisations, saved test metrics, and a form for validation-gated retraining.
+
+The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, `src/prediction.py`, `src/retraining.py`, the FastAPI service in `api/main.py`, and notebooks 01-06. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms using all 12 classes, including silence. Notebook 05 evaluates all three trained models on the untouched test split and records the validation-selected model.
 
 The project uses the Google Speech Commands v0.02 dataset. The dataset contains 105,829 original one-second audio recordings across 35 spoken-word categories and background-noise recordings. The original dataset is distributed under the Creative Commons Attribution 4.0 licence.
 
@@ -12,25 +14,17 @@ The project uses the Google Speech Commands v0.02 dataset. The dataset contains 
 - Original dataset archive: https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
 - Dataset paper: https://arxiv.org/abs/1804.03209
 
-The initial classification target is 12 classes: ten core commands (`yes`, `no`, `up`, `down`, `left`, `right`, `on`, `off`, `stop`, `go`), `unknown`, and `silence`. Auxiliary spoken words are grouped into `unknown`. One-second clips will be sampled from background-noise recordings to create `silence` examples.
+The classification target has 12 classes: ten core commands (`yes`, `no`, `up`, `down`, `left`, `right`, `on`, `off`, `stop`, `go`), `unknown`, and `silence`. Auxiliary spoken words are grouped into `unknown`; one-second clips sampled from background-noise recordings form the `silence` class.
 
 ## Repository structure
 
 ```text
-notebooks/
-  01_dataset_exploration.ipynb
-  02_preprocessing.ipynb
-  03_model_training.ipynb
-  04_cnn_training.ipynb
-  05_final_test_evaluation.ipynb
-  06_prediction_pipeline.ipynb
-src/
-app/
-api/
-data/
-  raw/
-  processed/
-models/
+notebooks/       # Dataset exploration, preprocessing, training, evaluation, prediction
+src/             # Preprocessing, classical/deep models, prediction, retraining
+api/             # FastAPI inference and retraining endpoints
+app/             # Streamlit dashboard
+data/            # Local source and processed data (not committed)
+models/          # Locally generated model artifacts (not committed)
 tests/
 load_testing/
 requirements.txt
@@ -54,37 +48,57 @@ requirements.txt
 
    If the `py` launcher is unavailable, use `python -m venv .venv`.
 
-3. Install the dependencies:
+3. Install dependencies:
 
    ```bash
    python -m pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-4. Start Jupyter:
+4. Run notebooks 01-05 in order to prepare data and train/evaluate the models. Run notebook 06 to test single-file and batch prediction. Put inference WAV files in `data/inference_samples/`.
 
-   ```bash
-   jupyter notebook
-   ```
+5. Ensure generated artifacts are present locally before starting the API:
+   - `models/final_test_metrics.json`
+   - `models/small_audio_cnn.pt`
+   - `models/linear_svm.joblib`
+   - `models/random_forest.joblib`
+   - `notebooks/data/processed/mfcc_features.npz` (needed for retraining)
 
-5. Run notebooks 01 through 05 in order. Notebook 04 uses PyTorch and torchaudio for CNN training. Run notebooks 03 and 04 again after pulling updates so both classical models and the CNN are saved with all 12 classes. Notebook 05 performs the final held-out test evaluation.
-6. Run notebook 06 to test single-file and batch prediction. Put WAV files in `data/inference_samples/`; batch results are written to `outputs/batch_predictions.csv`.
+   These files are intentionally excluded from GitHub because they are generated from the dataset. Run the relevant notebooks to recreate them.
 
-Downloaded audio, generated indexes, and extracted feature arrays are local working data and must not be committed to GitHub.
+## Run the API and dashboard
 
-## Current development environment
+Open two Git Bash terminals from the repository root. Activate the virtual environment in both.
 
-The local workflow uses Python directly and does not require Docker Desktop. Container-based deployment and scaling tests will be handled separately in a cloud environment if required by the assignment.
+**Terminal 1: FastAPI**
 
-## Planned development
+```bash
+uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+```
 
-1. Dataset acquisition, split verification and exploratory analysis.
-2. Audio preprocessing, MFCC extraction and spectrogram generation.
-3. Traditional ML baselines and a CNN model (implemented in notebooks 03-04).
-4. Validation comparison, final held-out test evaluation, error analysis and feature visualisations.
-5. Single-file and bulk audio prediction (implemented in `src/prediction.py` and notebook 06).
-6. Python API and validation-gated retraining (implemented in `api/main.py` and `src/retraining.py`). See [API documentation](api/README.md).
-7. Streamlit dashboard, cloud deployment and Locust load testing.
+API documentation: http://127.0.0.1:8000/docs
+
+**Terminal 2: Streamlit dashboard**
+
+```bash
+streamlit run app/dashboard.py
+```
+
+The dashboard opens in the browser, normally at http://localhost:8501. It connects to the API at http://127.0.0.1:8000 by default. If the API runs elsewhere, change the FastAPI base URL in the dashboard sidebar or set the `API_BASE_URL` environment variable before starting Streamlit.
+
+The dashboard includes:
+- API readiness, active model, and observed request count.
+- Single WAV prediction and top class scores.
+- Batch WAV prediction with downloadable CSV output.
+- Waveform, log-Mel spectrogram, and MFCC visualisations.
+- Held-out test metrics from the local `models/final_test_metrics.json`.
+- Upload of labelled WAV files and a `filename,label` CSV to trigger controlled retraining.
+
+Retraining is synchronous and resource-intensive. The API endpoint must be protected with authentication and upload limits before public deployment. Candidate promotion is based on validation macro-F1; the held-out test split is not used.
+
+## Development and deployment notes
+
+The local workflow uses Python directly and does not require Docker Desktop. Container-based deployment and scaling tests will be handled separately in a cloud environment if required by the assignment. The next milestone is cloud deployment and Locust performance testing at different container counts.
 
 ## Attribution
 
