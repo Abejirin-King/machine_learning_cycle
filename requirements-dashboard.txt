@@ -1,0 +1,10 @@
+# Lightweight dependencies for the Streamlit dashboard.
+# The dashboard calls the deployed FastAPI service; it does not load PyTorch models.
+numpy>=1.26,<2.0
+pandas>=2.1
+matplotlib>=3.8
+librosa>=0.10.2
+requests>=2.31
+streamlit>=1.38
+# PyArrow 26+ requires NumPy 2; keep compatibility with this project's NumPy 1.x stack.
+pyarrow>=16,<26
