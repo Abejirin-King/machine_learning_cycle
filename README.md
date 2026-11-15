@@ -4,7 +4,7 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestones 1-3: Dataset exploration, preprocessing, and classical baseline training.** The repository includes `src/preprocessing.py`, `src/models.py`, and notebooks 01-03. Notebook 03 trains and compares a class-weighted Linear SVM and Random Forest using validation data. The test split remains untouched for final evaluation.
+**Milestones 1-4: Dataset exploration, preprocessing, classical baselines, and CNN training.** The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, and notebooks 01-04. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms. Both use validation data for model selection and keep the test split untouched.
 
 The project uses the Google Speech Commands v0.02 dataset. The dataset contains 105,829 original one-second audio recordings across 35 spoken-word categories and background-noise recordings. The original dataset is distributed under the Creative Commons Attribution 4.0 licence.
 
@@ -19,6 +19,9 @@ The initial classification target is 12 classes: ten core commands (`yes`, `no`,
 ```text
 notebooks/
   01_dataset_exploration.ipynb
+  02_preprocessing.ipynb
+  03_model_training.ipynb
+  04_cnn_training.ipynb
 src/
 app/
 api/
@@ -62,7 +65,7 @@ requirements.txt
    jupyter notebook
    ```
 
-5. Run `notebooks/01_dataset_exploration.ipynb`, then `notebooks/02_preprocessing.ipynb`, and finally `notebooks/03_model_training.ipynb`.
+5. Run notebooks 01, 02, 03, and 04 in order. Notebook 04 uses PyTorch and torchaudio for CNN training.
 
 Downloaded audio, generated indexes, and extracted feature arrays are local working data and must not be committed to GitHub.
 
@@ -74,7 +77,7 @@ The local workflow uses Python directly and does not require Docker Desktop. Con
 
 1. Dataset acquisition, split verification and exploratory analysis.
 2. Audio preprocessing, MFCC extraction and spectrogram generation.
-3. Traditional ML baselines and a CNN model.
+3. Traditional ML baselines and a CNN model (implemented in notebooks 03-04).
 4. Evaluation, error analysis and feature visualisations.
 5. Single-file and bulk audio prediction.
 6. Retraining pipeline and Python API.
