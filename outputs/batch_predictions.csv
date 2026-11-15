@@ -1,0 +1,5 @@
+file,model,predicted_command,confidence_score
+no.wav,small_audio_cnn,no,0.6392934322357178
+stop.wav,small_audio_cnn,stop,0.6772421598434448
+up.wav,small_audio_cnn,up,0.5076411366462708
+yes.wav,small_audio_cnn,yes,0.44995272159576416
