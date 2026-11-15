@@ -11,6 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from src.prediction import AudioCommandPredictor
 from src.retraining import retrain_from_labeled_audio
@@ -176,7 +177,8 @@ async def predict(file: UploadFile = File(...)):
         await _save_upload(file, folder)
         path = folder / Path(file.filename or "").name
         try:
-            return _predictor().predict_one(path)
+            predictor = await run_in_threadpool(_predictor)
+            return await run_in_threadpool(predictor.predict_one, path)
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -195,7 +197,8 @@ async def predict_batch(files: list[UploadFile] = File(...)):
             for upload in files:
                 await _save_upload(upload, folder)
                 paths.append(folder / Path(upload.filename or "").name)
-            results = _predictor().predict_files(paths)
+            predictor = await run_in_threadpool(_predictor)
+            results = await run_in_threadpool(predictor.predict_files, paths)
             return JSONResponse(content=json.loads(results.to_json(orient="records")))
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
