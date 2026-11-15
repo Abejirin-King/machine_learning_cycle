@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from src.prediction import AudioCommandPredictor
@@ -28,6 +29,47 @@ app = FastAPI(
     ),
 )
 
+
+def custom_openapi():
+    """Make Swagger render repeated multipart uploads as file selectors."""
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    # FastAPI versions can omit format=binary from array UploadFile schemas.
+    # Swagger UI then renders text fields instead of file upload controls.
+    component_schemas = schema.get("components", {}).get("schemas", {})
+    for path, field_name in (
+        ("/predict/batch", "files"),
+        ("/retrain", "audio_files"),
+    ):
+        operation = schema.get("paths", {}).get(path, {}).get("post", {})
+        request_body = operation.get("requestBody", {})
+        multipart = request_body.get("content", {}).get("multipart/form-data", {})
+        body_schema = multipart.get("schema", {})
+        if "$ref" in body_schema:
+            component_name = body_schema["$ref"].rsplit("/", 1)[-1]
+            body_schema = component_schemas.get(component_name, {})
+        properties = body_schema.get("properties", {})
+        if field_name in properties:
+            properties[field_name] = {
+                "title": field_name.replace("_", " ").title(),
+                "type": "array",
+                "items": {"type": "string", "format": "binary"},
+                "description": "Select one or more WAV files.",
+            }
+
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 def _predictor() -> AudioCommandPredictor:
     try:
