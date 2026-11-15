@@ -15,7 +15,7 @@ DEFAULT_API = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 st.set_page_config(page_title="Voice Command AI", page_icon="🎙️", layout="wide")
 
 def api_get(base, path):
-    r = requests.get(f"{base}{path}", timeout=10)
+    r = requests.get(f"{base}{path}", timeout=60)
     r.raise_for_status()
     return r.json()
 
