@@ -32,17 +32,17 @@ def retrain_from_labeled_audio(
     feature_path = processed_dir / "mfcc_features.npz"
     metrics_path = model_dir / "final_test_metrics.json"
 
+    metadata = pd.read_csv(metadata_path)
+    required_columns = {"filename", "label"}
+    if not required_columns.issubset(metadata.columns):
+        raise ValueError("Metadata CSV must contain 'filename' and 'label' columns.")
+
     for required in (feature_path, metrics_path):
         if not required.is_file():
             raise FileNotFoundError(
                 f"Required training artifact is missing: {required}. "
                 "Run notebooks 02-05 first."
             )
-
-    metadata = pd.read_csv(metadata_path)
-    required_columns = {"filename", "label"}
-    if not required_columns.issubset(metadata.columns):
-        raise ValueError("Metadata CSV must contain 'filename' and 'label' columns.")
     metadata = metadata[["filename", "label"]].dropna().copy()
     metadata["filename"] = metadata["filename"].astype(str).map(lambda x: Path(x).name)
     metadata["label"] = metadata["label"].astype(str).str.strip().str.lower()
