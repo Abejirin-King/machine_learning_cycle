@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import joblib
@@ -10,8 +11,20 @@ import librosa
 import numpy as np
 import pandas as pd
 import soundfile as sf
+
+# Render's free CPU instances are very small. Prevent PyTorch from creating
+# large CPU thread pools that can overwhelm the available CPU quota.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
 import torch
 import torchaudio
+
+torch.set_num_threads(max(1, int(os.environ.get("TORCH_NUM_THREADS", "1"))))
+try:
+    torch.set_num_interop_threads(1)
+except RuntimeError:
+    # PyTorch only permits this setting before inter-op work has started.
+    pass
 
 from src.deep_learning import SmallAudioCNN
 from src.preprocessing import load_audio_segment
