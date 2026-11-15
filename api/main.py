@@ -88,21 +88,63 @@ async def _save_upload(upload: UploadFile, destination: Path) -> None:
 
 @app.get("/health")
 def health():
-    """Return service readiness and model artifact status."""
+    """Check only the artifact required by the currently selected model."""
     model_dir = PROJECT_ROOT / "models"
-    required = [
-        model_dir / "final_test_metrics.json",
-        model_dir / "small_audio_cnn.pt",
-        model_dir / "linear_svm.joblib",
-        model_dir / "random_forest.joblib",
-    ]
-    missing = [str(path) for path in required if not path.is_file()]
-    deployment = model_dir / "deployment_model.json"
+    metrics_path = model_dir / "final_test_metrics.json"
+    deployment_path = model_dir / "deployment_model.json"
+    missing = []
+    active_model = None
+    required_model_path = None
+
+    if not metrics_path.is_file():
+        missing.append(str(metrics_path))
+    else:
+        try:
+            with metrics_path.open("r", encoding="utf-8") as handle:
+                evaluation = json.load(handle)
+            deployment = {}
+            if deployment_path.is_file():
+                with deployment_path.open("r", encoding="utf-8") as handle:
+                    deployment = json.load(handle)
+
+            active_model = str(
+                deployment.get(
+                    "model_name",
+                    evaluation.get("validation_selected_model", ""),
+                )
+            )
+            if active_model == "linear_svm_retrained":
+                model_file = deployment.get(
+                    "model_file", "linear_svm_retrained.joblib"
+                )
+            elif active_model in {"linear_svm", "random_forest"}:
+                model_file = f"{active_model}.joblib"
+            elif active_model == "small_audio_cnn":
+                model_file = "small_audio_cnn.pt"
+            else:
+                model_file = None
+
+            if not model_file:
+                missing.append(
+                    f"Unsupported or missing selected model name: {active_model!r}"
+                )
+            else:
+                required_model_path = model_dir / model_file
+                if not required_model_path.is_file():
+                    missing.append(str(required_model_path))
+        except (OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
+            missing.append(f"Unable to read model selection metadata: {exc}")
+
+    ready = not missing
     return {
-        "status": "ok" if not missing else "degraded",
-        "model_artifacts_ready": not missing,
+        "status": "ok" if ready else "degraded",
+        "model_artifacts_ready": ready,
         "missing_artifacts": missing,
-        "deployment_config_present": deployment.is_file(),
+        "active_model": active_model,
+        "required_model_artifact": (
+            str(required_model_path) if required_model_path else None
+        ),
+        "deployment_config_present": deployment_path.is_file(),
     }
 
 
