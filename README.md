@@ -4,7 +4,7 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestones 1-4: Dataset exploration, preprocessing, classical baselines, and CNN training.** The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, and notebooks 01-04. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms. Both use validation data for model selection and keep the test split untouched.
+**Milestones 1-5: Dataset exploration, preprocessing, classical baselines, CNN training, and held-out test evaluation.** The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, and notebooks 01-05. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms using all 12 classes, including silence. Notebook 05 evaluates all three trained models on the untouched test split. Both use validation data for model selection and keep the test split untouched.
 
 The project uses the Google Speech Commands v0.02 dataset. The dataset contains 105,829 original one-second audio recordings across 35 spoken-word categories and background-noise recordings. The original dataset is distributed under the Creative Commons Attribution 4.0 licence.
 
@@ -22,6 +22,7 @@ notebooks/
   02_preprocessing.ipynb
   03_model_training.ipynb
   04_cnn_training.ipynb
+  05_final_test_evaluation.ipynb
 src/
 app/
 api/
@@ -65,7 +66,7 @@ requirements.txt
    jupyter notebook
    ```
 
-5. Run notebooks 01, 02, 03, and 04 in order. Notebook 04 uses PyTorch and torchaudio for CNN training.
+5. Run notebooks 01, 02, 03, 04, and 05 in order. Notebook 04 uses PyTorch and torchaudio for CNN training. Run notebooks 03 and 04 again after pulling updates so both classical models and the CNN are saved with all 12 classes. Notebook 05 performs the final held-out test evaluation.
 
 Downloaded audio, generated indexes, and extracted feature arrays are local working data and must not be committed to GitHub.
 
@@ -78,7 +79,7 @@ The local workflow uses Python directly and does not require Docker Desktop. Con
 1. Dataset acquisition, split verification and exploratory analysis.
 2. Audio preprocessing, MFCC extraction and spectrogram generation.
 3. Traditional ML baselines and a CNN model (implemented in notebooks 03-04).
-4. Evaluation, error analysis and feature visualisations.
+4. Validation comparison, final held-out test evaluation, error analysis and feature visualisations.
 5. Single-file and bulk audio prediction.
 6. Retraining pipeline and Python API.
 7. Streamlit dashboard, cloud deployment and Locust load testing.
