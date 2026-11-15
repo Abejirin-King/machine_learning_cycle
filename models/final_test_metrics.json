@@ -1,0 +1,64 @@
+{
+  "validation_selected_model": "small_audio_cnn",
+  "validation_comparison": [
+    {
+      "model": "linear_svm",
+      "accuracy": 0.5132443736307508,
+      "balanced_accuracy": 0.5088798054097052,
+      "macro_precision": 0.3647645195109878,
+      "macro_recall": 0.5088798054097052,
+      "macro_f1": 0.40522395707635245,
+      "weighted_f1": 0.5366553694599553,
+      "training_seconds": 19.981672299967613,
+      "validation_prediction_seconds": 0.2928552000084892
+    },
+    {
+      "model": "random_forest",
+      "accuracy": 0.6487751443935471,
+      "balanced_accuracy": 0.20193529239590402,
+      "macro_precision": 0.7667005461287428,
+      "macro_recall": 0.20193529239590402,
+      "macro_f1": 0.22294979857742456,
+      "weighted_f1": 0.5298210449313417,
+      "training_seconds": 275.25279330002377,
+      "validation_prediction_seconds": 2.5761961999814957
+    },
+    {
+      "model": "small_audio_cnn",
+      "accuracy": 0.8367855008962358,
+      "balanced_accuracy": 0.9106943006660496,
+      "macro_precision": 0.734801819891234,
+      "macro_recall": 0.9106943006660496,
+      "macro_f1": 0.8044865710817012
+    }
+  ],
+  "test_metrics": [
+    {
+      "model": "linear_svm",
+      "accuracy": 0.5237234523271577,
+      "balanced_accuracy": 0.46843918558412323,
+      "macro_precision": 0.37838561919099895,
+      "macro_recall": 0.46843918558412323,
+      "macro_f1": 0.405192566851353,
+      "weighted_f1": 0.5436173920188513
+    },
+    {
+      "model": "random_forest",
+      "accuracy": 0.6456394035246272,
+      "balanced_accuracy": 0.2036016476906889,
+      "macro_precision": 0.5316359022774434,
+      "macro_recall": 0.2036016476906889,
+      "macro_f1": 0.20657696047074134,
+      "weighted_f1": 0.5224516491793793
+    },
+    {
+      "model": "small_audio_cnn",
+      "accuracy": 0.8413014008133755,
+      "balanced_accuracy": 0.9088719086392684,
+      "macro_precision": 0.7541133050893705,
+      "macro_recall": 0.9088719086392684,
+      "macro_f1": 0.8160079324993803,
+      "weighted_f1": NaN
+    }
+  ]
+}
