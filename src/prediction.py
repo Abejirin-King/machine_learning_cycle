@@ -6,14 +6,10 @@ import json
 import os
 from pathlib import Path
 
-import joblib
-import librosa
 import numpy as np
-import pandas as pd
 import soundfile as sf
 
-# Render's free CPU instances are very small. Prevent PyTorch from creating
-# large CPU thread pools that can overwhelm the available CPU quota.
+# Keep CPU thread pools small on Render's 512 MB free instance.
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 import torch
@@ -23,11 +19,9 @@ torch.set_num_threads(max(1, int(os.environ.get("TORCH_NUM_THREADS", "1"))))
 try:
     torch.set_num_interop_threads(1)
 except RuntimeError:
-    # PyTorch only permits this setting before inter-op work has started.
     pass
 
-from src.deep_learning import SmallAudioCNN
-from src.preprocessing import load_audio_segment
+from src.cnn_model import SmallAudioCNN
 
 
 class AudioCommandPredictor:
@@ -67,6 +61,8 @@ class AudioCommandPredictor:
         self.model = None
 
         if self.model_name in {"linear_svm", "random_forest", "linear_svm_retrained"}:
+            import joblib
+
             bundle_name = self.deployment_model_file or f"{self.model_name}.joblib"
             bundle_path = self.model_dir / bundle_name
             if not bundle_path.is_file():
@@ -97,7 +93,35 @@ class AudioCommandPredictor:
                 "random_forest, or small_audio_cnn."
             )
 
+    def _load_cnn_audio(self, audio_path: str | Path) -> np.ndarray:
+        """Read and normalize a one-second clip without importing librosa."""
+        info = sf.info(str(audio_path))
+        frames = max(1, int(round(info.samplerate * 1.0)))
+        audio, source_rate = sf.read(
+            str(audio_path), frames=frames, dtype="float32", always_2d=True
+        )
+        if audio.size == 0:
+            raise ValueError(f"Audio file is empty: {Path(audio_path).name}")
+        audio = audio.mean(axis=1)
+        if source_rate != self.sample_rate:
+            waveform = torch.from_numpy(audio.copy()).unsqueeze(0)
+            waveform = torchaudio.functional.resample(
+                waveform, source_rate, self.sample_rate
+            )
+            audio = waveform.squeeze(0).numpy()
+        expected_length = self.sample_rate
+        if len(audio) < expected_length:
+            audio = np.pad(audio, (0, expected_length - len(audio)))
+        else:
+            audio = audio[:expected_length]
+        return np.asarray(audio, dtype=np.float32)
+
     def _classical_features(self, audio_path: str | Path) -> np.ndarray:
+        # Keep librosa out of the CNN inference import path. It is only needed
+        # when a classical model is explicitly selected.
+        import librosa
+        from src.preprocessing import load_audio_segment
+
         audio = load_audio_segment(audio_path, sample_rate=16_000)
         mfcc = librosa.feature.mfcc(
             y=audio, sr=16_000, n_mfcc=40, n_fft=400, hop_length=160
@@ -107,10 +131,8 @@ class AudioCommandPredictor:
         ).reshape(1, -1)
 
     def _cnn_input(self, audio_path: str | Path) -> torch.Tensor:
-        audio = load_audio_segment(
-            audio_path, sample_rate=self.sample_rate, duration_seconds=1.0
-        )
-        waveform = torch.from_numpy(audio.copy()).unsqueeze(0)
+        audio = self._load_cnn_audio(audio_path)
+        waveform = torch.from_numpy(audio).unsqueeze(0)
         mel = self.mel_transform(waveform).clamp_min(1e-9).log()
         mel = (mel - mel.mean()) / (mel.std() + 1e-6)
         return mel.unsqueeze(0).to(self.device)
@@ -126,8 +148,9 @@ class AudioCommandPredictor:
         if info.frames == 0:
             raise ValueError(f"Audio file is empty: {path.name}")
 
+        predicted_label = None
         if self.model_name == "small_audio_cnn":
-            with torch.no_grad():
+            with torch.inference_mode():
                 logits = self.model(self._cnn_input(path))
                 scores = torch.softmax(logits, dim=1)[0].cpu().numpy()
         else:
@@ -140,7 +163,6 @@ class AudioCommandPredictor:
                 decision = decision - np.max(decision)
                 exp_scores = np.exp(decision)
                 scores = exp_scores / exp_scores.sum()
-            # Use the model's native predicted class as the final label.
             predicted_label = prediction
 
         order = np.argsort(scores)[::-1]
@@ -149,7 +171,7 @@ class AudioCommandPredictor:
             {"label": self.labels[int(i)], "score": float(scores[int(i)])}
             for i in order[:top_k]
         ]
-        label = predicted_label if self.model_name != "small_audio_cnn" else ranked[0]["label"]
+        label = predicted_label if predicted_label is not None else ranked[0]["label"]
         confidence = next(item["score"] for item in ranked if item["label"] == label)
         return {
             "file": path.name,
@@ -160,8 +182,10 @@ class AudioCommandPredictor:
             "top_predictions": ranked,
         }
 
-    def predict_files(self, audio_paths, output_csv: str | Path | None = None) -> pd.DataFrame:
+    def predict_files(self, audio_paths, output_csv: str | Path | None = None):
         """Predict multiple WAV files and optionally save results as CSV."""
+        import pandas as pd
+
         rows = [self.predict_one(path) for path in audio_paths]
         frame = pd.DataFrame([{
             "file": row["file"],
