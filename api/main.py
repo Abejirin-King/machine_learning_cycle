@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import time
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -71,6 +72,7 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+@lru_cache(maxsize=1)
 def _predictor() -> AudioCommandPredictor:
     try:
         return AudioCommandPredictor(PROJECT_ROOT)
@@ -225,6 +227,8 @@ async def retrain(
             result = retrain_from_labeled_audio(
                 metadata_path, audio_dir, PROJECT_ROOT
             )
+            if isinstance(result, dict) and result.get("promoted"):
+                _predictor.cache_clear()
             return result
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
