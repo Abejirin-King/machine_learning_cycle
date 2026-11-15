@@ -38,13 +38,24 @@ class AudioCommandPredictor:
                 f"Missing {selection_path}. Run notebook 05 before inference."
             )
         selection = json.loads(selection_path.read_text(encoding="utf-8"))
-        selected = str(selection["validation_selected_model"])
+        deployment_path = self.model_dir / "deployment_model.json"
+        deployment = (
+            json.loads(deployment_path.read_text(encoding="utf-8"))
+            if deployment_path.is_file() else {}
+        )
+        selected = str(
+            deployment.get("model_name", selection["validation_selected_model"])
+        )
         self.model_name = model_name or selected
+        self.deployment_model_file = (
+            deployment.get("model_file") if self.model_name == selected else None
+        )
         self.labels: list[str]
         self.model = None
 
-        if self.model_name in {"linear_svm", "random_forest"}:
-            bundle_path = self.model_dir / f"{self.model_name}.joblib"
+        if self.model_name in {"linear_svm", "random_forest", "linear_svm_retrained"}:
+            bundle_name = self.deployment_model_file or f"{self.model_name}.joblib"
+            bundle_path = self.model_dir / bundle_name
             if not bundle_path.is_file():
                 raise FileNotFoundError(f"Missing model bundle: {bundle_path}")
             bundle = joblib.load(bundle_path)
