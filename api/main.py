@@ -14,7 +14,6 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.prediction import AudioCommandPredictor
-from src.retraining import retrain_from_labeled_audio
 
 PROJECT_ROOT = Path(os.environ.get(
     "PROJECT_ROOT", Path(__file__).resolve().parents[1]
@@ -225,6 +224,10 @@ async def retrain(
         metadata_path = root / "labels.csv"
         metadata_path.write_bytes(await metadata.read())
         try:
+            # Retraining pulls in pandas, librosa and scikit-learn. Import them
+            # only when this endpoint is called, not during normal prediction.
+            from src.retraining import retrain_from_labeled_audio
+
             for upload in audio_files:
                 await _save_upload(upload, audio_dir)
             result = retrain_from_labeled_audio(
