@@ -37,12 +37,14 @@ def build_classical_models(random_state: int = 42) -> dict[str, object]:
             )),
         ]),
         "random_forest": RandomForestClassifier(
-            n_estimators=250,
+            n_estimators=150,
             max_features="sqrt",
-            min_samples_leaf=1,
+            min_samples_leaf=2,
             class_weight="balanced_subsample",
             random_state=random_state,
-            n_jobs=-1,
+            # Sequential fitting uses less peak RAM than spawning one worker
+            # per CPU core. This is safer for local machines with limited memory.
+            n_jobs=1,
         ),
     }
 
