@@ -18,3 +18,5 @@ uvicorn[standard]>=0.30
 python-multipart>=0.0.9
 pytest>=8.0
 streamlit>=1.38
+# PyArrow 26+ requires NumPy 2; keep compatibility with this project's NumPy 1.x stack.
+pyarrow>=16,<26
