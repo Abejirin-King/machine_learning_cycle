@@ -22,9 +22,6 @@ def ensure_release_checkpoint(model_dir: str | Path) -> Path:
     """
     destination_dir = Path(model_dir)
     destination = destination_dir / CHECKPOINT_NAME
-    if destination.is_file() and destination.stat().st_size > 0:
-        return destination
-
     tag = os.environ.get("MODEL_RELEASE_TAG", "v1.0.0").strip()
     if not tag:
         raise RuntimeError("MODEL_RELEASE_TAG cannot be empty.")
