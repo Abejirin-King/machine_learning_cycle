@@ -175,6 +175,7 @@ def health():
             str(required_model_path) if required_model_path else None
         ),
         "deployment_config_present": deployment_path.is_file(),
+        "model_bootstrap_error": MODEL_BOOTSTRAP_ERROR,
     }
 
 
