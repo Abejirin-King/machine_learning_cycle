@@ -1,4 +1,4 @@
-"""Download the pinned CNN checkpoint from a GitHub Release when absent."""
+"""Synchronize the pinned CNN checkpoint from a GitHub Release."""
 
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ CHECKPOINT_NAME = "small_audio_cnn.pt"
 
 
 def ensure_release_checkpoint(model_dir: str | Path) -> Path:
-    """Ensure the pinned release checkpoint exists locally and matches its digest.
+    """Download the configured release checkpoint and verify its SHA-256 digest.
 
     Set MODEL_RELEASE_TAG to a release tag such as v1.0.0. The default is the
-    initial validated model. Existing local checkpoints are left untouched.
+    initial validated model. The release asset replaces the local checkpoint.
     """
     destination_dir = Path(model_dir)
     destination = destination_dir / CHECKPOINT_NAME
