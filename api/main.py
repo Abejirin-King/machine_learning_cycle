@@ -14,12 +14,14 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.prediction import AudioCommandPredictor
+from src.model_artifacts import ensure_release_checkpoint
 
 PROJECT_ROOT = Path(os.environ.get(
     "PROJECT_ROOT", Path(__file__).resolve().parents[1]
 )).resolve()
 STARTED_AT = time.time()
 REQUEST_COUNT = 0
+MODEL_BOOTSTRAP_ERROR: str | None = None
 
 app = FastAPI(
     title="Voice Command Recognition API",
@@ -71,6 +73,32 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+
+
+@app.on_event("startup")
+def load_pinned_model_release():
+    """Download the configured public release checkpoint if it is absent."""
+    global MODEL_BOOTSTRAP_ERROR
+    try:
+        metrics_path = PROJECT_ROOT / "models" / "final_test_metrics.json"
+        if metrics_path.is_file():
+            evaluation = json.loads(metrics_path.read_text(encoding="utf-8"))
+            deployment_path = PROJECT_ROOT / "models" / "deployment_model.json"
+            deployment = (
+                json.loads(deployment_path.read_text(encoding="utf-8"))
+                if deployment_path.is_file() else {}
+            )
+            selected = deployment.get(
+                "model_name", evaluation.get("validation_selected_model")
+            )
+            if selected == "small_audio_cnn":
+                checkpoint = ensure_release_checkpoint(PROJECT_ROOT / "models")
+                print(f"Model checkpoint ready: {checkpoint.name}")
+    except Exception as exc:
+        MODEL_BOOTSTRAP_ERROR = str(exc)
+        print(f"WARNING: model release bootstrap failed: {exc}")
+
+
 
 @lru_cache(maxsize=1)
 def _predictor() -> AudioCommandPredictor:
