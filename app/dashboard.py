@@ -151,34 +151,25 @@ with performance_tab:
         st.caption("Validation metrics select the model. The held-out test split remains reserved for final evaluation.")
 
 with retrain_tab:
-    st.subheader("Submit newly labelled recordings")
-    st.warning("Retraining is resource-intensive. Candidate promotion is gated by validation macro-F1. The held-out test set is never used.")
-    st.markdown("Upload a CSV with columns filename,label. Each filename must match one uploaded WAV file.")
-    metadata = st.file_uploader("Label metadata CSV", type=["csv"], key="labels")
-    new_audio = st.file_uploader("New labelled WAV recordings", type=["wav"], accept_multiple_files=True, key="new_audio")
-    if metadata:
-        try:
-            preview = pd.read_csv(metadata)
-            st.dataframe(preview.head(10), use_container_width=True)
-            metadata.seek(0)
-            if not {"filename", "label"}.issubset(preview.columns):
-                st.error("CSV must contain filename and label columns.")
-        except Exception as exc:
-            st.error(f"Could not read metadata CSV: {exc}")
-    if metadata and new_audio and st.button("Start controlled retraining", type="primary"):
-        files = [("metadata", (metadata.name, metadata.getvalue(), "text/csv"))]
-        files.extend(("audio_files", (f.name, f.getvalue(), "audio/wav")) for f in new_audio)
-        try:
-            r = requests.post(f"{api_base}/retrain", files=files, timeout=1800)
-            r.raise_for_status()
-            result = r.json()
-            if result.get("promoted"):
-                st.success("Candidate passed the validation gate and was promoted.")
-            else:
-                st.info("Candidate did not beat the existing validation macro-F1. The deployed model was not changed.")
-            st.json(result)
-        except requests.RequestException as exc:
-            st.error(f"Retraining failed: {exc}")
+    st.subheader("CNN retraining")
+    st.warning(
+        "Training is not run on the hosted Render API. The free inference instance "
+        "does not have the memory or persistent storage needed for safe CNN training."
+    )
+    st.markdown(
+        "Run the controlled retraining command on the computer that contains the "
+        "original Speech Commands dataset and the audio index. The candidate is "
+        "saved only when its validation macro-F1 beats the current checkpoint."
+    )
+    st.code(
+        "python -m src.retraining --metadata data/new_labels.csv "
+        "--audio-dir data/new_audio --project-root . --epochs 3",
+        language="bash",
+    )
+    st.caption(
+        "The CSV must contain filename,label. Keep the WAV files in the matching "
+        "folder. See api/README.md for the full process and release deployment steps."
+    )
 
 st.divider()
 st.caption("Educational interface mapping: yes = confirm, no = reject, up/down = navigate, go = start or continue, stop = stop. Unknown and silence are detection classes.")
