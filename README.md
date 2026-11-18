@@ -4,7 +4,7 @@ An end-to-end audio classification project that recognises short spoken commands
 
 ## Project status
 
-**Milestones 1-8: dataset exploration, preprocessing, model training, held-out test evaluation, single/batch prediction, FastAPI service, controlled retraining, and Streamlit dashboard.** The dashboard in `app/dashboard.py` provides API health and model status, single and batch WAV prediction, waveform/Mel/MFCC visualisations, saved test metrics, and a form for validation-gated retraining.
+**Milestones 1-8: dataset exploration, preprocessing, model training, held-out test evaluation, single/batch prediction, FastAPI service, controlled retraining, and Streamlit dashboard.** The dashboard in `app/dashboard.py` provides API health and model status, single and batch WAV prediction, waveform/Mel/MFCC visualisations, saved test metrics, and a dashboard-controlled remote retraining workflow using registered worker computers.
 
 The repository includes `src/preprocessing.py`, `src/models.py`, `src/deep_learning.py`, `src/prediction.py`, `src/retraining.py`, the FastAPI service in `api/main.py`, and notebooks 01-06. Notebook 03 compares a class-weighted Linear SVM and Random Forest; notebook 04 trains a CNN on log-Mel spectrograms using all 12 classes, including silence. Notebook 05 evaluates all three trained models on the untouched test split and records the validation-selected model.
 
@@ -92,9 +92,11 @@ The dashboard includes:
 - Batch WAV prediction with downloadable CSV output.
 - Waveform, log-Mel spectrogram, and MFCC visualisations.
 - Held-out test metrics from the local `models/final_test_metrics.json`.
-- Upload of labelled WAV files and a `filename,label` CSV to trigger controlled retraining.
+- Authenticated submission of labelled WAV files and a `filename,label` CSV to a persistent remote training queue.
+- Worker registration, job assignment, worker heartbeats, validation results and candidate checkpoint download.
+- Local CNN fine-tuning on registered contributor computers; Render remains the lightweight coordinator.
 
-Retraining is synchronous and resource-intensive. The API endpoint must be protected with authentication and upload limits before public deployment. Candidate promotion is based on validation macro-F1; the held-out test split is not used.
+Remote retraining uses Supabase for durable job metadata and private audio storage. Follow [api/REMOTE_TRAINING_SETUP.md](api/REMOTE_TRAINING_SETUP.md) to configure secrets, database tables, storage and worker computers. Candidate promotion is based on validation macro-F1; the held-out test split is not used. A candidate must be reviewed and manually released before deployment.
 
 ## Development and deployment notes
 
