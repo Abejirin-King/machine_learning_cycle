@@ -178,6 +178,7 @@ def health():
         ),
         "deployment_config_present": deployment_path.is_file(),
         "model_bootstrap_error": MODEL_BOOTSTRAP_ERROR,
+        "model_release_tag": os.getenv("MODEL_RELEASE_TAG", "v1.0.0"),
     }
 
 
