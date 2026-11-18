@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import tempfile
 import time
 import threading
@@ -16,6 +15,7 @@ from pathlib import Path
 import requests
 
 from src.retraining import retrain_from_labeled_audio
+from src.model_artifacts import ensure_release_checkpoint
 
 
 def main():
@@ -31,7 +31,10 @@ def main():
     root = Path(args.project_root).resolve()
     headers = {"Authorization": f"Bearer {args.token}"}
     session = requests.Session()
-
+    health = session.get(f"{args.server_url}/health", timeout=60)
+    health.raise_for_status()
+    os.environ["MODEL_RELEASE_TAG"] = str(health.json().get("model_release_tag", "v1.0.0"))
+    ensure_release_checkpoint(root / "models")
     print(f"Worker connected to {args.server_url}. Press Ctrl+C to stop.")
     stop_heartbeat = threading.Event()
 
