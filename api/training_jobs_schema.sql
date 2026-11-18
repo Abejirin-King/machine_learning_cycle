@@ -72,3 +72,12 @@ $$;
 -- Keep tables inaccessible to browser clients. The FastAPI service uses the service-role key.
 alter table public.training_workers enable row level security;
 alter table public.training_jobs enable row level security;
+
+-- Only the FastAPI service-role client may claim jobs.
+revoke all on function public.claim_training_job(uuid) from public;
+grant execute on function public.claim_training_job(uuid) to service_role;
+
+-- Private object storage for uploaded audio and candidate checkpoints.
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('training-jobs', 'training-jobs', false, 41943040)
+on conflict (id) do update set public = false, file_size_limit = 41943040;
