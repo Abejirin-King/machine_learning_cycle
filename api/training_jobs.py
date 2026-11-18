@@ -9,6 +9,7 @@ import json
 import os
 import secrets
 import uuid
+from urllib.parse import quote
 from datetime import datetime, timezone
 from typing import Any
 
@@ -47,7 +48,7 @@ def _db(method: str, table: str, key: str, *, params=None, body=None):
 def _storage_upload(key: str, bucket: str, path: str, content: bytes, content_type: str):
     url, _, _ = _settings()
     response = requests.post(
-        f"{url}/storage/v1/object/{bucket}/{path}",
+        f"{url}/storage/v1/object/{bucket}/{quote(path, safe='/')}",
         headers={"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": content_type, "x-upsert": "false"},
         data=content, timeout=90,
     )
@@ -58,7 +59,7 @@ def _storage_upload(key: str, bucket: str, path: str, content: bytes, content_ty
 def _signed_url(key: str, bucket: str, path: str) -> str:
     url, _, _ = _settings()
     response = requests.post(
-        f"{url}/storage/v1/object/sign/{bucket}/{path}",
+        f"{url}/storage/v1/object/sign/{bucket}/{quote(path, safe='/')}",
         headers=_headers(key), json={"expiresIn": 3600}, timeout=30,
     )
     if not response.ok:
@@ -244,3 +245,14 @@ def fail_job(worker_id: str, job_id: str, error: str = Form(...), _: str = Depen
     })
     _db("PATCH", "training_workers", key, params={"id": f"eq.{worker_id}"}, body={"current_job_id": None})
     return {"status": "failed"}
+
+
+@router.get("/jobs/{job_id}/candidate")
+def get_candidate_download(job_id: str, _: None = Depends(_dashboard_auth)):
+    _, key, bucket = _settings()
+    rows = _db("GET", "training_jobs", key, params={
+        "id": f"eq.{job_id}", "select": "status,candidate_path"
+    })
+    if not rows or rows[0].get("status") != "candidate_ready" or not rows[0].get("candidate_path"):
+        raise HTTPException(404, "This job has no promoted candidate checkpoint.")
+    return {"download_url": _signed_url(key, bucket, rows[0]["candidate_path"])}
