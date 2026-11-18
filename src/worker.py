@@ -10,6 +10,7 @@ import os
 import shutil
 import tempfile
 import time
+import threading
 from pathlib import Path
 
 import requests
@@ -32,6 +33,20 @@ def main():
     session = requests.Session()
 
     print(f"Worker connected to {args.server_url}. Press Ctrl+C to stop.")
+    stop_heartbeat = threading.Event()
+
+    def heartbeat_loop():
+        while not stop_heartbeat.wait(30):
+            try:
+                session.post(
+                    f"{args.server_url}/training/workers/{args.worker_id}/heartbeat",
+                    headers=headers, timeout=20,
+                ).raise_for_status()
+            except requests.RequestException as exc:
+                print(f"Heartbeat warning: {exc}")
+
+    heartbeat_thread = threading.Thread(target=heartbeat_loop, daemon=True)
+    heartbeat_thread.start()
     while True:
         try:
             session.post(f"{args.server_url}/training/workers/{args.worker_id}/heartbeat", headers=headers, timeout=30).raise_for_status()
@@ -57,21 +72,33 @@ def main():
                 csv_response.raise_for_status()
                 metadata_path.write_bytes(csv_response.content)
 
-                result = retrain_from_labeled_audio(
-                    metadata_path, audio_dir, root, epochs=int(job["epochs"])
-                )
-                files = {"candidate": ("small_audio_cnn_candidate.pt",
-                    (root / "models" / "small_audio_cnn_candidate.pt").read_bytes(),
-                    "application/octet-stream")} if result.get("promoted") else {}
-                data = {"result_json": json.dumps(result)}
-                submitted = session.post(
-                    f"{args.server_url}/training/workers/{args.worker_id}/jobs/{job_id}/result",
-                    headers=headers, data=data, files=files or None, timeout=180,
-                )
-                submitted.raise_for_status()
-                print(f"Job {job_id} finished: {submitted.json()['status']}.")
+                try:
+                    result = retrain_from_labeled_audio(
+                        metadata_path, audio_dir, root, epochs=int(job["epochs"])
+                    )
+                    files = {"candidate": ("small_audio_cnn_candidate.pt",
+                        (root / "models" / "small_audio_cnn_candidate.pt").read_bytes(),
+                        "application/octet-stream")} if result.get("promoted") else {}
+                    data = {"result_json": json.dumps(result)}
+                    submitted = session.post(
+                        f"{args.server_url}/training/workers/{args.worker_id}/jobs/{job_id}/result",
+                        headers=headers, data=data, files=files or None, timeout=180,
+                    )
+                    submitted.raise_for_status()
+                    print(f"Job {job_id} finished: {submitted.json()['status']}.")
+                except Exception as job_error:
+                    try:
+                        session.post(
+                            f"{args.server_url}/training/workers/{args.worker_id}/jobs/{job_id}/fail",
+                            headers=headers, data={"error": str(job_error)}, timeout=30,
+                        ).raise_for_status()
+                    except requests.RequestException as report_error:
+                        print(f"Could not report failed job: {report_error}")
+                    raise
         except KeyboardInterrupt:
             print("Worker stopped.")
+            stop_heartbeat.set()
+            heartbeat_thread.join(timeout=2)
             break
         except Exception as exc:
             print(f"Worker error: {exc}")
