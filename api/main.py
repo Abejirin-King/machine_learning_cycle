@@ -15,6 +15,7 @@ from starlette.concurrency import run_in_threadpool
 
 from src.prediction import AudioCommandPredictor
 from src.model_artifacts import ensure_release_checkpoint
+from api.training_jobs import router as training_router
 
 PROJECT_ROOT = Path(os.environ.get(
     "PROJECT_ROOT", Path(__file__).resolve().parents[1]
@@ -73,6 +74,7 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+app.include_router(training_router)
 
 
 @app.on_event("startup")
