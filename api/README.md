@@ -29,7 +29,7 @@ The API also requires `models/final_test_metrics.json` for model-selection metad
 | GET | `/metrics` | Uptime, request count and active model |
 | POST | `/predict` | Predict one WAV recording |
 | POST | `/predict/batch` | Predict several WAV recordings |
-| POST | `/retrain` | Upload labelled WAV files and trigger retraining |
+| POST | `/retrain` | Returns HTTP 501; training is deliberately kept off the hosted API |
 
 ### Single prediction
 
@@ -39,13 +39,13 @@ Use multipart form data with one field named `file`, containing a WAV file.
 
 Use multipart form data with one or more files under the field name `files`.
 
-### Retraining
+### CNN retraining
 
-Upload:
-- `metadata`: a CSV with exactly the required columns `filename,label` (additional columns are ignored).
-- `audio_files`: the WAV recordings referenced by the CSV.
+CNN training is deliberately not executed by the hosted FastAPI service. Render's free instance is sized for inference, not repeated audio training, and its filesystem is ephemeral. The hosted `POST /retrain` route therefore returns HTTP 501 instead of attempting the old, incorrect Linear SVM workflow.
 
-Example metadata:
+Run retraining on the computer that contains the original Google Speech Commands dataset and the generated split index. The required index is `notebooks/data/processed/audio_index_with_silence.csv`; it must point to the original audio files used in notebooks 01–02. Do not upload the original dataset or private recordings to the public repository.
+
+Prepare a CSV with columns `filename,label` and put the matching WAV files in one folder. Example:
 
 ```csv
 filename,label
@@ -54,8 +54,14 @@ new_stop_01.wav,stop
 new_up_01.wav,up
 ```
 
-Accepted labels are the existing 12 model classes: `down`, `go`, `left`, `no`, `off`, `on`, `right`, `silence`, `stop`, `unknown`, `up`, and `yes`.
+Accepted labels: `down`, `go`, `left`, `no`, `off`, `on`, `right`, `silence`, `stop`, `unknown`, `up`, and `yes`.
 
-The retraining workflow adds the new labelled recordings to the original training features, trains a candidate Linear SVM, and evaluates it on the unchanged validation split. The candidate is promoted only if its validation macro-F1 is higher than the currently selected model's recorded validation macro-F1. The held-out test split is not used for retraining or promotion. A promotion creates `models/linear_svm_retrained.joblib` and updates `models/deployment_model.json`.
+From the repository root, with the project virtual environment active, run:
 
-The current inference service reads that deployment configuration on each prediction request, so a promoted model is used without restarting the API. Retraining is a synchronous, resource-intensive operation; protect this endpoint with authentication and request limits before exposing it publicly.
+```bash
+python -m src.retraining --metadata data/new_labels.csv --audio-dir data/new_audio --project-root . --epochs 3
+```
+
+The script fine-tunes the existing `small_audio_cnn.pt`, using the new recordings only as additional training examples. It evaluates both the current checkpoint and candidate on the same unchanged validation split. A candidate is saved as `models/small_audio_cnn_candidate.pt` only when its validation macro-F1 is strictly higher. It writes the comparison to `models/latest_retraining_result.json`. The held-out test split is never loaded or used.
+
+A passing candidate is not deployed automatically. Review its validation result, then publish `small_audio_cnn_candidate.pt` as `small_audio_cnn.pt` in a new GitHub Release (for example `v1.1.0`). Set Render's `MODEL_RELEASE_TAG` to that new tag and redeploy. The current release remains the rollback point if the candidate does not improve.
