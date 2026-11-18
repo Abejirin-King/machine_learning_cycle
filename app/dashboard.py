@@ -151,24 +151,112 @@ with performance_tab:
         st.caption("Validation metrics select the model. The held-out test split remains reserved for final evaluation.")
 
 with retrain_tab:
-    st.subheader("CNN retraining")
+    st.subheader("Remote CNN retraining")
+    st.caption("The dashboard submits jobs. Registered worker computers download the data and run training locally; Render only coordinates the work.")
+
+    dashboard_token = st.text_input(
+        "Dashboard API token", type="password",
+        help="Set this to the DASHBOARD_API_TOKEN environment variable configured on the FastAPI service.",
+    )
+    auth_headers = {"X-Dashboard-Token": dashboard_token} if dashboard_token else {}
+
+    with st.expander("Register this computer as a training worker"):
+        st.markdown("Run the worker enrollment request once per computer. The enrollment token is configured privately on the API host.")
+        worker_name = st.text_input("Worker name", value="My training PC")
+        enrollment_token = st.text_input("Worker enrollment token", type="password")
+        if st.button("Register worker"):
+            try:
+                response = requests.post(
+                    f"{api_base}/training/workers/register",
+                    headers={"X-Worker-Enrollment-Token": enrollment_token},
+                    data={"name": worker_name}, timeout=60,
+                )
+                response.raise_for_status()
+                credentials = response.json()
+                st.success("Worker registered. Copy and save these credentials now.")
+                st.code(
+                    f'TRAINING_WORKER_ID={credentials["worker_id"]}\\n'
+                    f'TRAINING_WORKER_TOKEN={credentials["worker_token"]}',
+                    language="bash",
+                )
+                st.warning("The worker token is shown only once. Do not share it or commit it to GitHub.")
+            except requests.RequestException as exc:
+                st.error(f"Worker registration failed: {exc}")
+
+    st.markdown("#### Submit a labelled audio job")
+    metadata_upload = st.file_uploader(
+        "Metadata CSV (filename,label)", type=["csv"], key="training_metadata"
+    )
+    training_audio = st.file_uploader(
+        "Matching WAV recordings", type=["wav"], accept_multiple_files=True,
+        key="training_audio",
+    )
+    epochs = st.select_slider("Training epochs", options=[1, 2, 3, 4, 5], value=3)
+    st.caption("Maximum upload: 100 WAV files and 40 MB combined. Each CSV filename must match one uploaded WAV filename.")
+    if st.button("Submit training job", type="primary", disabled=not (dashboard_token and metadata_upload and training_audio)):
+        try:
+            files = [("metadata", (metadata_upload.name, metadata_upload.getvalue(), "text/csv"))]
+            files.extend(
+                ("audio_files", (item.name, item.getvalue(), "audio/wav"))
+                for item in training_audio
+            )
+            response = requests.post(
+                f"{api_base}/training/jobs", headers=auth_headers,
+                data={"epochs": epochs}, files=files, timeout=180,
+            )
+            response.raise_for_status()
+            job = response.json()
+            st.success(f"Training job {job['job_id']} queued with {job['recording_count']} recordings.")
+        except requests.RequestException as exc:
+            st.error(f"Could not submit training job: {exc}")
+
+    st.markdown("#### Training workers")
+    if st.button("Refresh workers and jobs") or dashboard_token:
+        if dashboard_token:
+            try:
+                worker_data = api_get(api_base, "/training/workers") if False else None
+                worker_response = requests.get(
+                    f"{api_base}/training/workers", headers=auth_headers, timeout=60
+                )
+                worker_response.raise_for_status()
+                workers = worker_response.json().get("workers", [])
+                if workers:
+                    worker_frame = pd.DataFrame(workers)
+                    worker_frame["last_seen_at"] = pd.to_datetime(
+                        worker_frame["last_seen_at"], errors="coerce", utc=True
+                    )
+                    worker_frame["connection"] = worker_frame["last_seen_at"].apply(
+                        lambda value: "Online" if pd.notna(value) and
+                        (pd.Timestamp.now(tz="UTC") - value).total_seconds() < 90
+                        else "Offline"
+                    )
+                    st.dataframe(worker_frame.drop(columns=["last_seen_at"]), use_container_width=True)
+                else:
+                    st.info("No training workers have registered yet.")
+
+                jobs_response = requests.get(
+                    f"{api_base}/training/jobs", headers=auth_headers, timeout=60
+                )
+                jobs_response.raise_for_status()
+                jobs = jobs_response.json().get("jobs", [])
+                if jobs:
+                    st.markdown("#### Recent jobs")
+                    st.dataframe(pd.json_normalize(jobs), use_container_width=True)
+                    for job in jobs:
+                        if job.get("result"):
+                            with st.expander(f"Results: {job['id']} ({job['status']})"):
+                                st.json(job["result"])
+                else:
+                    st.info("No training jobs have been submitted.")
+            except requests.RequestException as exc:
+                st.error(f"Could not retrieve worker/job status: {exc}")
+        else:
+            st.info("Enter the dashboard API token to view workers and jobs.")
+
     st.warning(
-        "Training is not run on the hosted Render API. The free inference instance "
-        "does not have the memory or persistent storage needed for safe CNN training."
-    )
-    st.markdown(
-        "Run the controlled retraining command on the computer that contains the "
-        "original Speech Commands dataset and the audio index. The candidate is "
-        "saved only when its validation macro-F1 beats the current checkpoint."
-    )
-    st.code(
-        "python -m src.retraining --metadata data/new_labels.csv "
-        "--audio-dir data/new_audio --project-root . --epochs 3",
-        language="bash",
-    )
-    st.caption(
-        "The CSV must contain filename,label. Keep the WAV files in the matching "
-        "folder. See api/README.md for the full process and release deployment steps."
+        "Setup required before using remote retraining: create the Supabase database tables "
+        "and private storage bucket, then configure the API environment variables. "
+        "See api/REMOTE_TRAINING_SETUP.md."
     )
 
 st.divider()
