@@ -51,7 +51,7 @@ def custom_openapi():
     component_schemas = schema.get("components", {}).get("schemas", {})
     for path, field_name in (
         ("/predict/batch", "files"),
-        ("/retrain", "audio_files"),
+        ("/training/jobs", "audio_files"),
     ):
         operation = schema.get("paths", {}).get(path, {}).get("post", {})
         request_body = operation.get("requestBody", {})
