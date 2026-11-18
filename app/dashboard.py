@@ -175,7 +175,7 @@ with retrain_tab:
                 credentials = response.json()
                 st.success("Worker registered. Copy and save these credentials now.")
                 st.code(
-                    f'TRAINING_WORKER_ID={credentials["worker_id"]}\\n'
+                    f'TRAINING_WORKER_ID={credentials["worker_id"]}\n'
                     f'TRAINING_WORKER_TOKEN={credentials["worker_token"]}',
                     language="bash",
                 )
