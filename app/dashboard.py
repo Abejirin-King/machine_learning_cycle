@@ -211,10 +211,9 @@ with retrain_tab:
             st.error(f"Could not submit training job: {exc}")
 
     st.markdown("#### Training workers")
-    if st.button("Refresh workers and jobs") or dashboard_token:
+    if st.button("Refresh workers and jobs"):
         if dashboard_token:
             try:
-                worker_data = api_get(api_base, "/training/workers") if False else None
                 worker_response = requests.get(
                     f"{api_base}/training/workers", headers=auth_headers, timeout=60
                 )
