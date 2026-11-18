@@ -37,6 +37,18 @@ as $$
 declare
   claimed public.training_jobs;
 begin
+  -- Recover jobs from workers that disappeared without reporting completion.
+  update public.training_jobs j
+     set status = 'queued', worker_id = null, started_at = null
+    from public.training_workers w
+   where j.worker_id = w.id
+     and j.status = 'running'
+     and w.last_seen_at < now() - interval '3 minutes';
+
+  update public.training_workers
+     set current_job_id = null
+   where last_seen_at < now() - interval '3 minutes';
+
   update public.training_workers
      set last_seen_at = now()
    where id = p_worker_id and enabled = true;
