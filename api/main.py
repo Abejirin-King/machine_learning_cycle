@@ -233,37 +233,18 @@ async def predict_batch(files: list[UploadFile] = File(...)):
 
 
 @app.post("/retrain")
-async def retrain(
-    metadata: UploadFile = File(...),
-    audio_files: list[UploadFile] = File(...),
-):
-    """Upload labelled WAV files and attempt validation-gated model promotion.
+async def retrain():
+    """Retraining is intentionally not run on the memory-limited API host.
 
-    The metadata CSV must have columns: filename,label. Labels must match the
-    system's existing 12 classes. The API never evaluates on the held-out test set.
+    Use the local training command documented in api/README.md. This keeps
+    training off Render and prevents promotion without the original train and
+    validation audio.
     """
-    global REQUEST_COUNT
-    REQUEST_COUNT += 1
-    if Path(metadata.filename or "").suffix.lower() != ".csv":
-        raise HTTPException(status_code=400, detail="Metadata must be a CSV file.")
-    with tempfile.TemporaryDirectory(prefix="voice-retrain-") as temp:
-        root = Path(temp)
-        audio_dir = root / "audio"
-        audio_dir.mkdir()
-        metadata_path = root / "labels.csv"
-        metadata_path.write_bytes(await metadata.read())
-        try:
-            # Retraining pulls in pandas, librosa and scikit-learn. Import them
-            # only when this endpoint is called, not during normal prediction.
-            from src.retraining import retrain_from_labeled_audio
-
-            for upload in audio_files:
-                await _save_upload(upload, audio_dir)
-            result = retrain_from_labeled_audio(
-                metadata_path, audio_dir, PROJECT_ROOT
-            )
-            if isinstance(result, dict) and result.get("promoted"):
-                _predictor.cache_clear()
-            return result
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "CNN retraining is not available on the hosted inference API. "
+            "Run the local training workflow with the original Speech Commands "
+            "dataset and audio index; see api/README.md."
+        ),
+    )
