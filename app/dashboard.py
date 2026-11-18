@@ -245,6 +245,25 @@ with retrain_tab:
                         if job.get("result"):
                             with st.expander(f"Results: {job['id']} ({job['status']})"):
                                 st.json(job["result"])
+                                if job.get("status") == "candidate_ready":
+                                    try:
+                                        candidate_response = requests.get(
+                                            f"{api_base}/training/jobs/{job['id']}/candidate",
+                                            headers=auth_headers, timeout=60,
+                                        )
+                                        candidate_response.raise_for_status()
+                                        signed_url = candidate_response.json()["download_url"]
+                                        checkpoint_response = requests.get(signed_url, timeout=120)
+                                        checkpoint_response.raise_for_status()
+                                        st.download_button(
+                                            "Download candidate checkpoint",
+                                            data=checkpoint_response.content,
+                                            file_name="small_audio_cnn_candidate.pt",
+                                            mime="application/octet-stream",
+                                            key=f"candidate-{job['id']}",
+                                        )
+                                    except requests.RequestException as exc:
+                                        st.error(f"Candidate download failed: {exc}")
                 else:
                     st.info("No training jobs have been submitted.")
             except requests.RequestException as exc:
