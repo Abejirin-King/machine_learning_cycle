@@ -63,7 +63,10 @@ def _signed_url(key: str, bucket: str, path: str) -> str:
     )
     if not response.ok:
         raise HTTPException(502, "Could not create a temporary download link for the training job.")
-    return url + response.json()["signedURL"]
+    signed = response.json()["signedURL"]
+    if signed.startswith("/object/"):
+        signed = "/storage/v1" + signed
+    return signed if signed.startswith("http") else url + signed
 
 
 def _dashboard_auth(token: str | None = Header(default=None, alias="X-Dashboard-Token")):
