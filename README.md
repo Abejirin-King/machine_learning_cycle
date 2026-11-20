@@ -55,16 +55,15 @@ requirements.txt
    pip install -r requirements.txt
    ```
 
-4. Run notebooks 01-05 in order to prepare data, train the traditional ML and CNN models, and evaluate them on the held-out test split. Run notebook 06 to exercise single-file and batch prediction. Put inference WAV files in `data/inference_samples/`.
+4. Run notebooks 01-05 in order to prepare the data, train the traditional ML and CNN models, and evaluate them on the held-out test split. Run notebook 06 to exercise single-file and batch prediction. The notebooks contain the experiment workflow; the deployed API uses the approved CNN checkpoint from the configured GitHub Release. Put inference WAV files in `data/inference_samples/`.
 
 5. Ensure generated artifacts are present locally before starting the API:
    - `models/final_test_metrics.json`
    - `models/small_audio_cnn.pt`
-   - `models/linear_svm.joblib`
-   - `models/random_forest.joblib`
-   - `notebooks/data/processed/mfcc_features.npz` (needed for retraining)
+   - `models/final_test_metrics.json`
+   - `models/small_audio_cnn.pt` (downloaded from the approved GitHub Release when the API starts)
 
-   These files are intentionally excluded from GitHub because they are generated from the dataset. Run the relevant notebooks to recreate them.
+   The classical model files are only needed when reproducing the classical-model experiments. Local retraining requires the original audio dataset, `notebooks/data/processed/audio_index_with_silence.csv`, the current CNN checkpoint, and `models/final_test_metrics.json`. The MFCC feature archive is not required for CNN retraining. Generated model files and datasets are excluded from GitHub.
 
 ## Run the API and dashboard
 
