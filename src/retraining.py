@@ -56,7 +56,10 @@ def _load_index(index_path: Path, root: Path) -> pd.DataFrame:
 
 
 def _validate_uploads(metadata_path: Path, audio_dir: Path) -> pd.DataFrame:
-    metadata = pd.read_csv(metadata_path)
+    try:
+        metadata = pd.read_csv(metadata_path)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError("Metadata CSV is empty or unreadable.") from exc
     if not {"filename", "label"}.issubset(metadata.columns):
         raise ValueError("Metadata CSV must contain filename,label columns.")
     metadata = metadata[["filename", "label"]].dropna().copy()
