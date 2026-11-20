@@ -100,7 +100,7 @@ Remote retraining uses Supabase for durable job metadata and private audio stora
 
 ## Development and deployment notes
 
-The local workflow uses Python directly and does not require Docker Desktop. The API is also packaged in a CPU-only Docker image and can run behind Nginx with one, two, or five API replicas. The Docker container-count load-testing results are documented in [load_testing/results/docker_container_comparison.md](load_testing/results/docker_container_comparison.md). These Killercoda results are reported separately from the Render Locust tests because the two experiments used different deployment environments and tested different scaling dimensions.
+The local workflow uses Python directly and does not require Docker Desktop. The API is also packaged in a CPU-only Docker image and can run behind Nginx with one, two, or five API replicas. The Docker container-count load-testing results are documented in [load_testing/results/docker_container_comparison.md](load_testing/results/docker_container_comparison.md), and the Render concurrency results are documented in [load_testing/results/render_load_test_comparison.md](load_testing/results/render_load_test_comparison.md). The underlying Locust CSV exports are stored in `load_testing/results/`. These experiments are reported separately because they used different deployment environments and tested different scaling dimensions: Render varied concurrent users, while Docker varied API container count.
 
 ## Attribution
 
