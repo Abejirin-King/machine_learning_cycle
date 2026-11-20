@@ -15,9 +15,9 @@ Open the interactive API documentation at `http://127.0.0.1:8000/docs`.
 
 ## Model checkpoint provisioning
 
-At startup, the API downloads `small_audio_cnn.pt` from the public GitHub Release selected by `MODEL_RELEASE_TAG` (defaults to `v1.0.0`). The download is checked against the SHA-256 digest published in the GitHub release metadata before replacing the local checkpoint. The release is the source of truth for the deployed CNN weights.
+At startup, the API downloads `small_audio_cnn.pt` from the public GitHub Release selected by `MODEL_RELEASE_TAG` (defaults to `v1.2.0`). The download is checked against the SHA-256 digest published in the GitHub release metadata before replacing the local checkpoint. The release is the source of truth for the deployed CNN weights.
 
-To pin a different approved release in Render, set the environment variable `MODEL_RELEASE_TAG` to its tag (for example, `v1.1.0`) and redeploy. Do not put a GitHub token in the repository; the current public release download does not require one.
+To pin a different approved release in Render, set the environment variable `MODEL_RELEASE_TAG` to its tag (for example, `v1.2.0`) and redeploy. Do not put a GitHub token in the repository; the current public release download does not require one.
 
 The API also requires `models/final_test_metrics.json` for model-selection metadata. That small evaluation file remains part of the repository.
 
@@ -50,7 +50,7 @@ Use multipart form data with one or more files under the field name `files`.
 
 CNN training is deliberately not executed by the hosted FastAPI service. Render's free instance is sized for inference, not repeated audio training, and its filesystem is ephemeral. The hosted `POST /retrain` route therefore returns HTTP 501 instead of attempting the old, incorrect Linear SVM workflow.
 
-Run retraining on the computer that contains the original Google Speech Commands dataset and the generated split index. The required index is `notebooks/data/processed/audio_index_with_silence.csv`; it must point to the original audio files used in notebooks 01–02. Do not upload the original dataset or private recordings to the public repository.
+Run retraining on the computer that contains the original Google Speech Commands dataset and the generated split index. The required index is `notebooks/data/processed/audio_index_with_silence.csv`; it must point to the original audio files used in notebooks 01–02. The current CNN checkpoint and `models/final_test_metrics.json` must also be available locally. The MFCC feature archive is not required by this CNN fine-tuning workflow. Do not upload the original dataset or private recordings to the public repository.
 
 Prepare a CSV with columns `filename,label` and put the matching WAV files in one folder. Example:
 
@@ -71,7 +71,7 @@ python -m src.retraining --metadata data/new_labels.csv --audio-dir data/new_aud
 
 The script fine-tunes the existing `small_audio_cnn.pt`, using the new recordings only as additional training examples. It evaluates both the current checkpoint and candidate on the same unchanged validation split. A candidate is saved as `models/small_audio_cnn_candidate.pt` only when its validation macro-F1 is strictly higher. It writes the comparison to `models/latest_retraining_result.json`. The held-out test split is never loaded or used.
 
-A passing candidate is not deployed automatically. Review its validation result, then publish `small_audio_cnn_candidate.pt` as `small_audio_cnn.pt` in a new GitHub Release (for example `v1.1.0`). Set Render's `MODEL_RELEASE_TAG` to that new tag and redeploy. The current release remains the rollback point if the candidate does not improve.
+A passing candidate is not deployed automatically. Review its validation result, then publish `small_audio_cnn_candidate.pt` as `small_audio_cnn.pt` in a new GitHub Release (for example `v1.3.0`, after the current `v1.2.0` release). Set Render's `MODEL_RELEASE_TAG` to that new tag and redeploy. The current release remains the rollback point if the candidate does not improve.
 
 
 ## Remote dashboard-controlled retraining
