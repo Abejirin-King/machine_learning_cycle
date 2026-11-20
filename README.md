@@ -55,7 +55,7 @@ requirements.txt
    pip install -r requirements.txt
    ```
 
-4. Run notebooks 01-05 in order to prepare data and train/evaluate the models. Run notebook 06 to test single-file and batch prediction. Put inference WAV files in `data/inference_samples/`.
+4. Run notebooks 01-05 in order to prepare data, train the traditional ML and CNN models, and evaluate them on the held-out test split. Run notebook 06 to exercise single-file and batch prediction. Put inference WAV files in `data/inference_samples/`.
 
 5. Ensure generated artifacts are present locally before starting the API:
    - `models/final_test_metrics.json`
