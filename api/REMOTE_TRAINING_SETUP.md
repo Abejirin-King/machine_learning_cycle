@@ -18,7 +18,7 @@ Add these environment variables to the `voice-command-api` service:
 - `SUPABASE_TRAINING_BUCKET`: `training-jobs` (optional; this is the default).
 - `DASHBOARD_API_TOKEN`: a long random secret used by the dashboard to submit jobs and view status.
 - `WORKER_ENROLLMENT_TOKEN`: a separate long random secret used only when registering a new worker.
-- `MODEL_RELEASE_TAG`: the currently approved model release, for example `v1.1.0`.
+- `MODEL_RELEASE_TAG`: the currently approved model release, for example `v1.2.0`.
 
 Generate random values locally in Git Bash with:
 
