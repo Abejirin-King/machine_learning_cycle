@@ -129,18 +129,24 @@ def retrain_from_labeled_audio(
     root = Path(project_root).resolve()
     model_dir = root / "models"
     checkpoint_path = model_dir / "small_audio_cnn.pt"
+
+    if epochs < 1 or epochs > 20:
+        raise ValueError("epochs must be between 1 and 20.")
+
+    # Validate the submitted metadata and WAV files before checking training
+    # artifacts. Invalid uploads should produce an input error even on a
+    # machine that does not have the model checkpoint or original dataset.
+    added = _validate_uploads(Path(metadata_path), Path(audio_dir))
+
     if not checkpoint_path.is_file():
         raise FileNotFoundError(f"Current CNN checkpoint not found: {checkpoint_path}")
     if not (model_dir / "final_test_metrics.json").is_file():
         raise FileNotFoundError("models/final_test_metrics.json is missing.")
-    if epochs < 1 or epochs > 20:
-        raise ValueError("epochs must be between 1 and 20.")
 
     data_index_path = Path(index_path) if index_path else (
         root / "notebooks" / "data" / "processed" / "audio_index_with_silence.csv"
     )
     original = _load_index(data_index_path, root)
-    added = _validate_uploads(Path(metadata_path), Path(audio_dir))
     original_labels = sorted(original["target"].astype(str).unique().tolist())
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
