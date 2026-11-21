@@ -4,7 +4,7 @@ An end-to-end audio classification system that recognises short spoken commands 
 
 ## Demo and deployed application
 
-- **Video demonstration (YouTube):** [Add the YouTube demo link here]
+- **Video demonstration:** [Youtube](https://youtu.be/lP1dMY63ApI)
 - **Live Streamlit dashboard:** [Voice Comand Dashboard](https://voice-command-dashboard.onrender.com/)
 - **Live FastAPI service:** https://voice-command-api.onrender.com
 - **Interactive API documentation (Swagger):** https://voice-command-api.onrender.com/docs
